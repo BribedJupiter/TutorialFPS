@@ -2,32 +2,30 @@ package com.bribedjupiter.TutorialFPS;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.*;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.graphics.g3d.*;
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
-import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
-import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
-import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
-import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController;
-import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
-
-import com.bribedjupiter.TutorialFPS.Settings;
-import com.bribedjupiter.TutorialFPS.CamController;
+import net.mgsx.gltf.loaders.gltf.GLTFLoader;
+import net.mgsx.gltf.scene3d.attributes.PBRCubemapAttribute;
+import net.mgsx.gltf.scene3d.attributes.PBRTextureAttribute;
+import net.mgsx.gltf.scene3d.lights.DirectionalLightEx;
+import net.mgsx.gltf.scene3d.scene.Scene;
+import net.mgsx.gltf.scene3d.scene.SceneAsset;
+import net.mgsx.gltf.scene3d.scene.SceneManager;
+import net.mgsx.gltf.scene3d.scene.SceneSkybox;
+import net.mgsx.gltf.scene3d.utils.IBLBuilder;
 
 /** First screen of the application. Displayed after the application is created. */
 public class GameScreen extends ScreenAdapter {
     private PerspectiveCamera cam;
     private CamController camController;
-    private Environment environment;
-    private Model modelGround;
-    private Texture textureGround;
-    private Array<ModelInstance> instances;
-    private ModelBatch modelBatch;
+    private SceneManager sceneManager;
+    private SceneAsset sceneAsset;
+    private Cubemap diffuseCubemap;
+    private Cubemap environmentCubemap;
+    private Cubemap specularCubemap;
+    private Texture brdfLUT;
+    private SceneSkybox skybox;
 
     public final Color BACKGROUND_COLOR = new Color(153f/255f, 1.0f, 236f/255f, 1.0f);
 
@@ -38,7 +36,7 @@ public class GameScreen extends ScreenAdapter {
         cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         cam.position.set(10f, Settings.eyeHeight, 5f);
         cam.lookAt(0, Settings.eyeHeight, 0);
-        cam.near = 1f;
+        cam.near = 0.1f;
         cam.far = 300f;
         cam.update();
 
@@ -46,37 +44,41 @@ public class GameScreen extends ScreenAdapter {
         camController = new CamController(cam);
         Gdx.input.setInputProcessor(camController);
 
-        // Setup environment
-        environment = new Environment();
-        environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.6f, 0.6f, 0.6f, 1f));
-        environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
-
-        // Setup ground texture
-        textureGround = new Texture(Gdx.files.internal("textures/Stylized_Stone_Floor_005_basecolor.jpg"), true);
-        textureGround.setFilter(Texture.TextureFilter.MipMapLinearLinear, Texture.TextureFilter.Linear);
-        textureGround.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
-        TextureRegion textureRegion = new TextureRegion(textureGround);
-        int repeats = 10;
-        textureRegion.setRegion(0, 0, textureGround.getWidth()*repeats, textureGround.getHeight()*repeats);
-
-        // Setup model builder
-        ModelBuilder modelBuilder = new ModelBuilder();
-
-        // Setup ground model
-        modelGround = modelBuilder.createBox(100f, 1f, 100f,
-            new Material(TextureAttribute.createDiffuse(textureRegion)),
-                VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal | VertexAttributes.Usage.TextureCoordinates);
-
-        // Model instance - top flush with 0
-        instances = new Array<>();
-        instances.add(new ModelInstance(modelGround, 0, -1, 0));
-
-        // Start modelBatch
-        modelBatch = new ModelBatch();
-
         Gdx.input.setCursorCatched(true);
         Gdx.input.setCursorPosition(Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() / 2);
 
+        // Setup scene
+        sceneManager = new SceneManager();
+        sceneAsset = new GLTFLoader().load(Gdx.files.internal("models/step3.gltf"));
+        Scene scene = new Scene(sceneAsset.scene);
+        sceneManager.addScene(scene);
+
+        sceneManager.setCamera(cam);
+
+        // Setup light
+        DirectionalLightEx light = new DirectionalLightEx();
+        light.direction.set(1, -3, 1).nor();
+        light.color.set(Color.WHITE);
+        light.intensity = 3f;
+        sceneManager.environment.add(light);
+
+        // Setup quick Image Based Lighting (IBL)
+        IBLBuilder iblBuilder = IBLBuilder.createOutdoor(light);
+        environmentCubemap = iblBuilder.buildEnvMap(1024);
+        diffuseCubemap = iblBuilder.buildIrradianceMap(256);
+        specularCubemap = iblBuilder.buildRadianceMap(10);
+        iblBuilder.dispose();
+
+        brdfLUT = new Texture(Gdx.files.classpath("net/mgsx/gltf/shaders/brdfLUT.png"));
+
+        sceneManager.setAmbientLight(1f);
+        sceneManager.environment.set(new PBRTextureAttribute(PBRTextureAttribute.BRDFLUTTexture, brdfLUT));
+        sceneManager.environment.set(PBRCubemapAttribute.createSpecularEnv(specularCubemap));
+        sceneManager.environment.set(PBRCubemapAttribute.createDiffuseEnv(diffuseCubemap));
+
+        // Setup skybox
+        skybox = new SceneSkybox(environmentCubemap);
+        sceneManager.setSkyBox(skybox);
     }
 
     @Override
@@ -90,17 +92,14 @@ public class GameScreen extends ScreenAdapter {
 
         // Render
         ScreenUtils.clear(BACKGROUND_COLOR, true);
-        modelBatch.begin(cam);
-        modelBatch.render(instances, environment);
-        modelBatch.end();
+        sceneManager.update(delta);
+        sceneManager.render();
     }
 
     @Override
     public void resize(int width, int height) {
         // Resize your screen here. The parameters represent the new window size.
-        cam.viewportWidth = width;
-        cam.viewportHeight = height;
-        cam.update();
+        sceneManager.updateViewport(width, height);
     }
 
     @Override
@@ -112,8 +111,12 @@ public class GameScreen extends ScreenAdapter {
     @Override
     public void dispose() {
         // Destroy screen's assets here.
-        modelBatch.dispose();
-        modelGround.dispose();
-        textureGround.dispose();
+        sceneManager.dispose();
+        sceneAsset.dispose();
+        environmentCubemap.dispose();
+        diffuseCubemap.dispose();
+        specularCubemap.dispose();
+        brdfLUT.dispose();
+        skybox.dispose();
     }
 }
