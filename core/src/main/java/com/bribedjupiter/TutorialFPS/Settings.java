@@ -10,4 +10,5 @@ public class Settings {
     static public float headBobDuration = 0.6f; // s
     static public float headBobHeight = 0.04f; // m
     static public float gravity = -9.8f; // m/s^2
+    static public final int shadowMapSize = 4096;
 }

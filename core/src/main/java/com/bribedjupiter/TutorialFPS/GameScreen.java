@@ -1,5 +1,6 @@
 package com.bribedjupiter.TutorialFPS;
 
+import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ScreenAdapter;
@@ -18,92 +19,47 @@ import net.mgsx.gltf.scene3d.utils.IBLBuilder;
 
 /** First screen of the application. Displayed after the application is created. */
 public class GameScreen extends ScreenAdapter {
-    private PerspectiveCamera cam;
     private CamController camController;
-    private SceneManager sceneManager;
-    private SceneAsset sceneAsset;
-    private Cubemap diffuseCubemap;
-    private Cubemap environmentCubemap;
-    private Cubemap specularCubemap;
-    private Texture brdfLUT;
-    private SceneSkybox skybox;
-
-    public final Color BACKGROUND_COLOR = new Color(153f/255f, 1.0f, 236f/255f, 1.0f);
+    private GameView gameView;
+    private World world;
+    private GridView gridView;
 
     @Override
     public void show() {
         // Prepare your screen here.
-        // Setup camera
-        cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        cam.position.set(10f, Settings.eyeHeight, 5f);
-        cam.lookAt(0, Settings.eyeHeight, 0);
-        cam.near = 0.1f;
-        cam.far = 300f;
-        cam.update();
 
         // Setup cam controller
-        camController = new CamController(cam);
+        world = new World("models/step4a.gltf");
+        Populator.populate(world);
+        gameView = new GameView(world);
+        gridView = new GridView();
+
+        camController = new CamController(gameView.getCamera());
         Gdx.input.setInputProcessor(camController);
 
         Gdx.input.setCursorCatched(true);
         Gdx.input.setCursorPosition(Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() / 2);
-
-        // Setup scene
-        sceneManager = new SceneManager();
-        sceneAsset = new GLTFLoader().load(Gdx.files.internal("models/step4a.gltf"));
-        for (Node node : sceneAsset.scene.model.nodes) {
-            Gdx.app.log("Node", node.id);
-        }
-        Scene scene = new Scene(sceneAsset.scene);
-        sceneManager.addScene(scene);
-
-        sceneManager.setCamera(cam);
-
-        // Setup light
-        DirectionalLightEx light = new DirectionalLightEx();
-        light.direction.set(1, -3, 1).nor();
-        light.color.set(Color.WHITE);
-        light.intensity = 3f;
-        sceneManager.environment.add(light);
-
-        // Setup quick Image Based Lighting (IBL)
-        IBLBuilder iblBuilder = IBLBuilder.createOutdoor(light);
-        environmentCubemap = iblBuilder.buildEnvMap(1024);
-        diffuseCubemap = iblBuilder.buildIrradianceMap(256);
-        specularCubemap = iblBuilder.buildRadianceMap(10);
-        iblBuilder.dispose();
-
-        brdfLUT = new Texture(Gdx.files.classpath("net/mgsx/gltf/shaders/brdfLUT.png"));
-
-        sceneManager.setAmbientLight(1f);
-        sceneManager.environment.set(new PBRTextureAttribute(PBRTextureAttribute.BRDFLUTTexture, brdfLUT));
-        sceneManager.environment.set(PBRCubemapAttribute.createSpecularEnv(specularCubemap));
-        sceneManager.environment.set(PBRCubemapAttribute.createDiffuseEnv(diffuseCubemap));
-
-        // Setup skybox
-        skybox = new SceneSkybox(environmentCubemap);
-        sceneManager.setSkyBox(skybox);
     }
 
     @Override
     public void render(float delta) {
         // Draw your screen here. "delta" is the time since last render in seconds.
         // Update
-        camController.update(Gdx.graphics.getDeltaTime());
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             Gdx.app.exit();
         }
 
         // Render
-        ScreenUtils.clear(BACKGROUND_COLOR, true);
-        sceneManager.update(delta);
-        sceneManager.render();
+        camController.update(Gdx.graphics.getDeltaTime());
+        world.update(delta);
+        gameView.render(delta);
+        gridView.render(gameView.getCamera());
     }
 
     @Override
     public void resize(int width, int height) {
         // Resize your screen here. The parameters represent the new window size.
-        sceneManager.updateViewport(width, height);
+        gameView.resize(width, height);
     }
 
     @Override
@@ -115,12 +71,8 @@ public class GameScreen extends ScreenAdapter {
     @Override
     public void dispose() {
         // Destroy screen's assets here.
-        sceneManager.dispose();
-        sceneAsset.dispose();
-        environmentCubemap.dispose();
-        diffuseCubemap.dispose();
-        specularCubemap.dispose();
-        brdfLUT.dispose();
-        skybox.dispose();
+        gameView.dispose();
+        world.dispose();
+        gridView.dispose();
     }
 }
