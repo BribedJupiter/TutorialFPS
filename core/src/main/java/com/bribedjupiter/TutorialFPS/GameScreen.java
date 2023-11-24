@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.g3d.model.Node;
 import com.badlogic.gdx.utils.ScreenUtils;
 import net.mgsx.gltf.loaders.gltf.GLTFLoader;
 import net.mgsx.gltf.scene3d.attributes.PBRCubemapAttribute;
@@ -49,7 +50,10 @@ public class GameScreen extends ScreenAdapter {
 
         // Setup scene
         sceneManager = new SceneManager();
-        sceneAsset = new GLTFLoader().load(Gdx.files.internal("models/step3.gltf"));
+        sceneAsset = new GLTFLoader().load(Gdx.files.internal("models/step4a.gltf"));
+        for (Node node : sceneAsset.scene.model.nodes) {
+            Gdx.app.log("Node", node.id);
+        }
         Scene scene = new Scene(sceneAsset.scene);
         sceneManager.addScene(scene);
 
