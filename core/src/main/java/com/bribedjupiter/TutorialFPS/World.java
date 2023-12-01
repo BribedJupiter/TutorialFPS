@@ -14,6 +14,7 @@ import net.mgsx.gltf.scene3d.scene.SceneAsset;
 public class World implements Disposable {
     private final Array<GameObject> gameObjects;
     private final SceneAsset sceneAsset;
+    public final PhysicsWorld physicsWorld;
     public GameObject player;
     private boolean isDirty;
 
@@ -24,6 +25,7 @@ public class World implements Disposable {
             Gdx.app.log("Node", node.id);
         }
         isDirty = true;
+        physicsWorld = new PhysicsWorld();
     }
 
     public boolean isDirty() {
@@ -63,11 +65,12 @@ public class World implements Disposable {
     }
 
     public void update(float deltaTime) {
-        // todo
+        physicsWorld.update();
     }
 
     @Override
     public void dispose() {
         sceneAsset.dispose();
+        physicsWorld.dispose();
     }
 }
