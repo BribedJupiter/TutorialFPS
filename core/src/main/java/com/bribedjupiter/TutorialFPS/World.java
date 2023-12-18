@@ -14,7 +14,9 @@ import net.mgsx.gltf.scene3d.scene.SceneAsset;
 public class World implements Disposable {
     private final Array<GameObject> gameObjects;
     private final SceneAsset sceneAsset;
-    public final PhysicsWorld physicsWorld;
+    private final PhysicsWorld physicsWorld;
+    private final PhysicsBodyFactory factory;
+
     public GameObject player;
     private boolean isDirty;
 
@@ -26,6 +28,7 @@ public class World implements Disposable {
         }
         isDirty = true;
         physicsWorld = new PhysicsWorld();
+        factory = new PhysicsBodyFactory(physicsWorld);
     }
 
     public boolean isDirty() {
@@ -46,17 +49,27 @@ public class World implements Disposable {
         return gameObjects.get(index);
     }
 
-    public GameObject spawnObject(String name, Vector3 position) {
+    public GameObject spawnObject(boolean isStatic, String name, CollisionShapeType shape, Vector3 position, float mass) {
         Scene scene = new Scene(sceneAsset.scene, name);
         if (scene.modelInstance.nodes.size == 0) {
             Gdx.app.error("Cannot find node in GLTF", name);
             return null;
         }
+        applyNodeTransform(scene.modelInstance, scene.modelInstance.nodes.first()); // inorporate nodes' transform into model instance transform
         scene.modelInstance.transform.translate(position);
-        GameObject go = new GameObject(scene);
+        PhysicsBody body = factory.createBody(scene.modelInstance, shape, mass, isStatic);
+        GameObject go = new GameObject(scene, body);
         gameObjects.add(go);
         isDirty = true;
         return go;
+    }
+
+    private void applyNodeTransform(ModelInstance modelInstance, Node node) {
+        modelInstance.transform.mul(node.globalTransform);
+        node.translation.set(0, 0, 0);
+        node.scale.set(1, 1, 1);
+        node.rotation.idt();
+        modelInstance.calculateTransforms();
     }
 
     public void removeObject(GameObject gameObject) {

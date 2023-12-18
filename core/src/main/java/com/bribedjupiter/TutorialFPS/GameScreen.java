@@ -16,6 +16,9 @@ import net.mgsx.gltf.scene3d.scene.SceneAsset;
 import net.mgsx.gltf.scene3d.scene.SceneManager;
 import net.mgsx.gltf.scene3d.scene.SceneSkybox;
 import net.mgsx.gltf.scene3d.utils.IBLBuilder;
+import com.bribedjupiter.TutorialFPS.GameView;
+import com.bribedjupiter.TutorialFPS.GridView;
+import com.bribedjupiter.TutorialFPS.PhysicsView;
 
 /** First screen of the application. Displayed after the application is created. */
 public class GameScreen extends ScreenAdapter {
@@ -23,6 +26,7 @@ public class GameScreen extends ScreenAdapter {
     private GameView gameView;
     private World world;
     private GridView gridView;
+    private PhysicsView physicsView;
 
     @Override
     public void show() {
@@ -33,6 +37,7 @@ public class GameScreen extends ScreenAdapter {
         Populator.populate(world);
         gameView = new GameView(world);
         gridView = new GridView();
+        physicsView = new PhysicsView(world);
 
         camController = new CamController(gameView.getCamera());
         Gdx.input.setInputProcessor(camController);
@@ -48,12 +53,16 @@ public class GameScreen extends ScreenAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             Gdx.app.exit();
         }
+        if (Gdx.input.isKeyJustPressed((Input.Keys.R))) {
+            Populator.populate(world);
+        }
 
         // Render
         camController.update(Gdx.graphics.getDeltaTime());
         world.update(delta);
         gameView.render(delta);
         gridView.render(gameView.getCamera());
+        physicsView.render(gameView.getCamera());
     }
 
     @Override
@@ -74,5 +83,6 @@ public class GameScreen extends ScreenAdapter {
         gameView.dispose();
         world.dispose();
         gridView.dispose();
+        physicsView.dispose();
     }
 }
