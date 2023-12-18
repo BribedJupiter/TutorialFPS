@@ -36,6 +36,7 @@ public class World implements Disposable {
     }
 
     public void clear() {
+        physicsWorld.reset();
         gameObjects.clear();
         player = null;
         isDirty = true;
@@ -55,7 +56,7 @@ public class World implements Disposable {
             Gdx.app.error("Cannot find node in GLTF", name);
             return null;
         }
-        applyNodeTransform(scene.modelInstance, scene.modelInstance.nodes.first()); // inorporate nodes' transform into model instance transform
+        applyNodeTransform(scene.modelInstance, scene.modelInstance.nodes.first()); // incorporate nodes' transform into model instance transform
         scene.modelInstance.transform.translate(position);
         PhysicsBody body = factory.createBody(scene.modelInstance, shape, mass, isStatic);
         GameObject go = new GameObject(scene, body);
@@ -79,6 +80,15 @@ public class World implements Disposable {
 
     public void update(float deltaTime) {
         physicsWorld.update();
+        syncToPhysics();
+    }
+
+    private void syncToPhysics() {
+        for (GameObject go : gameObjects) {
+            if (go.body.geom.getBody() != null) {
+                go.scene.modelInstance.transform.set(go.body.getPosition(), go.body.getOrientation());
+            }
+        }
     }
 
     @Override
