@@ -11,4 +11,6 @@ public class Settings {
     static public float headBobHeight = 0.04f; // m
     static public float gravity = -9.8f; // m/s^2
     static public final int shadowMapSize = 4096;
+    static public float ballMass = 0.2f;
+    static public float ballForce = 100f;
 }

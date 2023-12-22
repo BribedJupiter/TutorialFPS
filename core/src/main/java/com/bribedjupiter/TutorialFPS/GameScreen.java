@@ -27,11 +27,12 @@ public class GameScreen extends ScreenAdapter {
     private World world;
     private GridView gridView;
     private PhysicsView physicsView;
+    private boolean debugRender = false;
 
     @Override
     public void show() {
         // Prepare your screen here.
-
+        Gdx.input.setCatchKey(Input.Keys.F1, true);
         // Setup cam controller
         world = new World("models/step4a.gltf");
         Populator.populate(world);
@@ -56,13 +57,21 @@ public class GameScreen extends ScreenAdapter {
         if (Gdx.input.isKeyJustPressed((Input.Keys.R))) {
             Populator.populate(world);
         }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F)) {
+            world.shootBall();
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F1)) {
+            debugRender = !debugRender;
+        }
 
         // Render
         camController.update(Gdx.graphics.getDeltaTime());
         world.update(delta);
         gameView.render(delta);
-        gridView.render(gameView.getCamera());
-        physicsView.render(gameView.getCamera());
+        if (debugRender) {
+            gridView.render(gameView.getCamera());
+            physicsView.render(gameView.getCamera());
+        }
     }
 
     @Override

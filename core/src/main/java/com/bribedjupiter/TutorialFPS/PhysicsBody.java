@@ -1,7 +1,9 @@
 package com.bribedjupiter.TutorialFPS;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
+import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector3;
 import com.github.antzGames.gdx.ode4j.math.DQuaternion;
@@ -16,6 +18,9 @@ public class PhysicsBody {
     private Vector3 position; // for convenience, matches geom.getPosition() but converted to Vector3
     private Quaternion quaternion; // for convenience, matches geom.getQuaternion() but converted to LibGDX Quaternion
     private ModelInstance debugInstance; // visualisation of collision shape for debug view
+    static private final Color COLOR_ACTIVE = Color.GREEN;
+    static private final Color COLOR_SLEEPING = Color.TEAL;
+    static private final Color COLOR_STATIC = Color.GRAY;
 
     public PhysicsBody(DGeom geom, ModelInstance debugInstance) {
         this.geom = geom;
@@ -59,7 +64,22 @@ public class PhysicsBody {
         }
     }
 
+    public void applyForce(Vector3 force) {
+        DBody rigidBody = geom.getBody();
+        rigidBody.addForce(force.x, -force.z, force.y); // swap -z & y to convert to ODE axes
+    }
+
     public void render(ModelBatch batch) {
+        Color color = COLOR_STATIC;
+        if (geom.getBody() != null) {
+            if (geom.getBody().isEnabled()) {
+                color = COLOR_ACTIVE;
+            }
+            else {
+                color = COLOR_SLEEPING;
+            }
+        }
+        debugInstance.materials.first().set(ColorAttribute.createDiffuse(color));
         debugInstance.transform.set(getPosition(), getOrientation());
         batch.render(debugInstance);
     }

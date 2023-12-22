@@ -16,6 +16,9 @@ public class World implements Disposable {
     private final SceneAsset sceneAsset;
     private final PhysicsWorld physicsWorld;
     private final PhysicsBodyFactory factory;
+    private final Vector3 dir = new Vector3();
+    private final Vector3 spawnPos = new Vector3();
+    private final Vector3 shootDirection = new Vector3();
 
     public GameObject player;
     private boolean isDirty;
@@ -50,13 +53,21 @@ public class World implements Disposable {
         return gameObjects.get(index);
     }
 
-    public GameObject spawnObject(boolean isStatic, String name, CollisionShapeType shape, Vector3 position, float mass) {
+    public void shootBall() {
+        dir.set(player.getDirection());
+        spawnPos.set(dir);
+        Vector3 p = player.getPosition();
+        spawnPos.add(player.getPosition()); // spawn from 1 unit in front of the player
+        GameObject ball = spawnObject(false, "ball", CollisionShapeType.SPHERE, true, spawnPos, Settings.ballMass);
+    }
+
+    public GameObject spawnObject(boolean isStatic, String name, CollisionShapeType shape, boolean resetPosition, Vector3 position, float mass) {
         Scene scene = new Scene(sceneAsset.scene, name);
         if (scene.modelInstance.nodes.size == 0) {
             Gdx.app.error("Cannot find node in GLTF", name);
             return null;
         }
-        applyNodeTransform(scene.modelInstance, scene.modelInstance.nodes.first()); // incorporate nodes' transform into model instance transform
+        applyNodeTransform(resetPosition, scene.modelInstance, scene.modelInstance.nodes.first()); // incorporate nodes' transform into model instance transform
         scene.modelInstance.transform.translate(position);
         PhysicsBody body = factory.createBody(scene.modelInstance, shape, mass, isStatic);
         GameObject go = new GameObject(scene, body);
@@ -65,12 +76,14 @@ public class World implements Disposable {
         return go;
     }
 
-    private void applyNodeTransform(ModelInstance modelInstance, Node node) {
-        modelInstance.transform.mul(node.globalTransform);
-        node.translation.set(0, 0, 0);
-        node.scale.set(1, 1, 1);
-        node.rotation.idt();
-        modelInstance.calculateTransforms();
+    private void applyNodeTransform(boolean resetPosition, ModelInstance modelInstance, Node node) {
+        if (!resetPosition) { // Set resetPosition to false if the object will always be in the same place
+            modelInstance.transform.mul(node.globalTransform); // multiply matrices
+        }
+        node.translation.set(0, 0, 0); // reset to origin
+        node.scale.set(1, 1, 1); // reset scale
+        node.rotation.idt(); // reset quaternion
+        modelInstance.calculateTransforms(); // reset transformations
     }
 
     public void removeObject(GameObject gameObject) {

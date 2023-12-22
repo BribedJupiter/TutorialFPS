@@ -42,7 +42,7 @@ public class PhysicsWorld implements Disposable {
         // make inactive objs go to sleep
         world.setAutoDisableFlag(true);
         world.setAutoDisableLinearThreshold(0.1);
-        world.setAutoDisableAngularThreshold(0.001);
+        world.setAutoDisableAngularThreshold(0.01);
         world.setAutoDisableTime(2);
     }
 
