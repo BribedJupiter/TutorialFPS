@@ -17,7 +17,10 @@ public class PhysicsView implements Disposable {
         modelBatch.begin(cam);
         int num = world.getNumGameObjects();
         for (int i = 0; i < num; i++) {
-            world.getGameObject(i).body.render(modelBatch);
+            GameObject go = world.getGameObject(i);
+            if (go.visible) {
+                go.body.render(modelBatch);
+            }
         }
         modelBatch.end();
     }

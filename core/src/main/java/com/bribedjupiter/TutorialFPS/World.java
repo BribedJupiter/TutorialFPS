@@ -19,6 +19,7 @@ public class World implements Disposable {
     private final Vector3 dir = new Vector3();
     private final Vector3 spawnPos = new Vector3();
     private final Vector3 shootDirection = new Vector3();
+    private final PlayerController playerController;
 
     public GameObject player;
     private boolean isDirty;
@@ -32,6 +33,7 @@ public class World implements Disposable {
         isDirty = true;
         physicsWorld = new PhysicsWorld();
         factory = new PhysicsBodyFactory(physicsWorld);
+        playerController = new PlayerController();
     }
 
     public boolean isDirty() {
@@ -40,6 +42,8 @@ public class World implements Disposable {
 
     public void clear() {
         physicsWorld.reset();
+        playerController.reset();
+
         gameObjects.clear();
         player = null;
         isDirty = true;
@@ -53,12 +57,28 @@ public class World implements Disposable {
         return gameObjects.get(index);
     }
 
+    public GameObject getPlayer() {
+        return player;
+    }
+
+    public void setPlayer (GameObject player) {
+        this.player = player;
+        player.body.setPlayerCharacteristics();
+    }
+
+    public PlayerController getPlayerController() {
+        return playerController;
+    }
+
     public void shootBall() {
         dir.set(player.getDirection());
         spawnPos.set(dir);
-        Vector3 p = player.getPosition();
         spawnPos.add(player.getPosition()); // spawn from 1 unit in front of the player
         GameObject ball = spawnObject(false, "ball", CollisionShapeType.SPHERE, true, spawnPos, Settings.ballMass);
+        shootDirection.set(dir);
+        shootDirection.y += 0.5f;
+        shootDirection.scl(Settings.ballForce);
+        ball.body.applyForce(shootDirection);
     }
 
     public GameObject spawnObject(boolean isStatic, String name, CollisionShapeType shape, boolean resetPosition, Vector3 position, float mass) {
@@ -92,6 +112,7 @@ public class World implements Disposable {
     }
 
     public void update(float deltaTime) {
+        playerController.update(player, deltaTime);
         physicsWorld.update();
         syncToPhysics();
     }
@@ -102,6 +123,9 @@ public class World implements Disposable {
                 go.scene.modelInstance.transform.set(go.body.getPosition(), go.body.getOrientation());
             }
         }
+        // the player model is an exception, use information from the player controller
+        player.scene.modelInstance.transform.setToRotation(Vector3.Z, playerController.getForwardDirection());
+        player.scene.modelInstance.transform.setTranslation(player.body.getPosition());
     }
 
     @Override

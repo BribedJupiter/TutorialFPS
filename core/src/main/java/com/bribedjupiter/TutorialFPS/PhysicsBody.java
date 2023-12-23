@@ -69,6 +69,13 @@ public class PhysicsBody {
         rigidBody.addForce(force.x, -force.z, force.y); // swap -z & y to convert to ODE axes
     }
 
+    public void setPlayerCharacteristics() {
+        DBody rigidBody = geom.getBody();
+        rigidBody.setDamping(Settings.playerLinearDamping, Settings.playerAngularDamping);
+        rigidBody.setAutoDisableFlag(false);
+        rigidBody.setMaxAngularSpeed(0);
+    }
+
     public void render(ModelBatch batch) {
         Color color = COLOR_STATIC;
         if (geom.getBody() != null) {

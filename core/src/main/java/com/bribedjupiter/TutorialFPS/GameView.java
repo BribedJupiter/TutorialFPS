@@ -1,10 +1,8 @@
 package com.bribedjupiter.TutorialFPS;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Cubemap;
-import com.badlogic.gdx.graphics.PerspectiveCamera;
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.ScreenUtils;
 import net.mgsx.gltf.scene3d.attributes.PBRCubemapAttribute;
@@ -24,6 +22,7 @@ public class GameView implements Disposable {
     private Cubemap specularCubemap;
     private Texture brdfLUT;
     private SceneSkybox skybox;
+    private final CameraController camController;
 
     public GameView(World world) {
         this.world = world;
@@ -37,6 +36,8 @@ public class GameView implements Disposable {
         cam.update();
 
         sceneManager.setCamera(cam);
+        camController = new CameraController(cam);
+        camController.setThirdPersonMode(true);
 
         // Setup light
         DirectionalLightEx light = new net.mgsx.gltf.scene3d.lights.DirectionalShadowLight(Settings.shadowMapSize, Settings.shadowMapSize)
@@ -69,6 +70,10 @@ public class GameView implements Disposable {
         return cam;
     }
 
+    public CameraController getCameraController() {
+        return camController;
+    }
+
     public void refresh() {
         sceneManager.getRenderableProviders().clear(); // remove all scenes
 
@@ -76,11 +81,20 @@ public class GameView implements Disposable {
         int num = world.getNumGameObjects();
         for (int i = 0; i < num; i++) {
             Scene scene = world.getGameObject(i).scene;
-            sceneManager.addScene(scene);
+            if (world.getGameObject(i).visible)
+                sceneManager.addScene(scene, false);
         }
     }
 
     public void render (float delta) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.F2)) {
+            boolean thirdPersonView = !camController.getThirdPersonMode();
+            camController.setThirdPersonMode(thirdPersonView);
+            world.getPlayer().visible = thirdPersonView;
+            refresh();
+        }
+
+        camController.update(world.getPlayer().getPosition(), world.getPlayerController().getViewingDirection());
         cam.update();
         if (world.isDirty())
             refresh();

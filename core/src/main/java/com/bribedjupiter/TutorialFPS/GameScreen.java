@@ -1,9 +1,6 @@
 package com.bribedjupiter.TutorialFPS;
 
-import com.badlogic.gdx.Game;
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
-import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g3d.model.Node;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -22,7 +19,6 @@ import com.bribedjupiter.TutorialFPS.PhysicsView;
 
 /** First screen of the application. Displayed after the application is created. */
 public class GameScreen extends ScreenAdapter {
-    private CamController camController;
     private GameView gameView;
     private World world;
     private GridView gridView;
@@ -40,11 +36,15 @@ public class GameScreen extends ScreenAdapter {
         gridView = new GridView();
         physicsView = new PhysicsView(world);
 
-        camController = new CamController(gameView.getCamera());
-        Gdx.input.setInputProcessor(camController);
+        InputMultiplexer im = new InputMultiplexer();
+        Gdx.input.setInputProcessor(im);
+        im.addProcessor(gameView.getCameraController());
+        im.addProcessor(world.getPlayerController());
 
         Gdx.input.setCursorCatched(true);
         Gdx.input.setCursorPosition(Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() / 2);
+
+
     }
 
     @Override
@@ -65,7 +65,6 @@ public class GameScreen extends ScreenAdapter {
         }
 
         // Render
-        camController.update(Gdx.graphics.getDeltaTime());
         world.update(delta);
         gameView.render(delta);
         if (debugRender) {
